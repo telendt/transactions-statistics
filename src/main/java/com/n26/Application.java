@@ -10,6 +10,11 @@ import org.springframework.context.annotation.Bean;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 public class Application {
@@ -27,4 +32,23 @@ public class Application {
         });
     }
 
+    @Bean
+    ScheduledExecutorService scheduledExecutorService() {
+        return new ScheduledThreadPoolExecutor(1);
+    }
+
+    @Bean
+    Clock clock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    TransactionStatistics transactionStatistics(Clock clock, ScheduledExecutorService scheduledExecutorService) {
+        Duration recordingDuration = Duration.ofSeconds(60);
+        int resolution = 100;
+        TransactionStatisticsImpl statistics = new TransactionStatisticsImpl(recordingDuration, resolution, clock);
+        long tickRateNanos = recordingDuration.dividedBy(resolution).toNanos();
+        scheduledExecutorService.scheduleAtFixedRate(statistics::tick, tickRateNanos, tickRateNanos, TimeUnit.NANOSECONDS);
+        return statistics;
+    }
 }

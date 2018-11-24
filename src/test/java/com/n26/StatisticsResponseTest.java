@@ -21,28 +21,60 @@ public class StatisticsResponseTest {
     /**
      * Test serialization of empty (ZERO_VALUE) StatisticsResponse.
      * Such value is returned for GET /statistics when there were no transactions in the last 60s.
-     *
-     * @throws IOException
      */
     @Test
     public void testSerializationZeroValue() throws IOException {
-        assertThat(json.write(StatisticsResponse.ZERO_VALUE)).isEqualToJson("expected/statisticsResponse-01.json");
+        assertThat(json.write(new StatisticsResponse(new StatisticsSummary<BigDecimal>() {
+            @Override
+            public BigDecimal getSum() {
+                return null;
+            }
+
+            @Override
+            public BigDecimal getMax() {
+                return null;
+            }
+
+            @Override
+            public BigDecimal getMin() {
+                return null;
+            }
+
+            @Override
+            public long getCount() {
+                return 0;
+            }
+        }))).isEqualToJson("expected/statisticsResponse-01.json");
     }
 
     /**
      * Test serialization of StatisticsResponse given in challenge instructions.
-     *
-     * @throws IOException
      */
     @Test
     public void testSerializationSpecExample() throws IOException {
         StatisticsResponse statisticsResponse = new StatisticsResponse(
-                new BigDecimal("1005.3"), // corrected to get the value of avg from the spec
-                // avg skipped, as it's calculated as sum/count
-                new BigDecimal("200000.49"), // max greater that sum? how? :)
-                new BigDecimal("50.23"),
-                10);
-        System.out.println(json.write(statisticsResponse).toString());
+                new StatisticsSummary<BigDecimal>() {
+                    @Override
+                    public BigDecimal getSum() {
+                        return new BigDecimal("1005.3"); // corrected to get the value of avg from the spec
+                    }
+
+                    @Override
+                    public BigDecimal getMax() {
+                        return new BigDecimal("200000.49"); // max greater that sum? how? :)
+                    }
+
+                    @Override
+                    public BigDecimal getMin() {
+                        return new BigDecimal("50.23");
+                    }
+
+                    @Override
+                    public long getCount() {
+                        return 10;
+                    }
+                }
+        );
         assertThat(json.write(statisticsResponse)).isEqualToJson("expected/statisticsResponse-02.json");
     }
 }

@@ -1,45 +1,40 @@
 package com.n26;
 
-import org.springframework.lang.Nullable;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 
 public class StatisticsResponse {
-    static final StatisticsResponse ZERO_VALUE = new StatisticsResponse(null, null, null, 0);
+    private final StatisticsSummary<BigDecimal> summary;
 
-    private final BigDecimal sum;
-    private final BigDecimal max;
-    private final BigDecimal min;
-    private final long count;
-
-    StatisticsResponse(@Nullable BigDecimal sum, @Nullable BigDecimal max, @Nullable BigDecimal min, long count) {
-        this.sum = sum;
-        this.max = max;
-        this.min = min;
-        this.count = count;
+    StatisticsResponse(StatisticsSummary<BigDecimal> summary) {
+        this.summary = summary;
     }
 
-    @Nullable
+    @JsonProperty("sum")
     public BigDecimal getSum() {
-        return sum;
+        return getCount() > 0 ? summary.getSum() : BigDecimal.ZERO;
     }
 
-    @Nullable
+    @JsonProperty("avg")
     public BigDecimal getAvg() {
-        return sum == null ? null : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_HALF_UP);
+        return getCount() > 0 ?
+                getSum().divide(BigDecimal.valueOf(getCount()), 2, BigDecimal.ROUND_HALF_UP) :
+                BigDecimal.ZERO;
     }
 
-    @Nullable
+    @JsonProperty("max")
     public BigDecimal getMax() {
-        return max;
+        return getCount() > 0 ? summary.getMax() : BigDecimal.ZERO;
     }
 
-    @Nullable
+    @JsonProperty("min")
     public BigDecimal getMin() {
-        return min;
+        return getCount() > 0 ? summary.getMin() : BigDecimal.ZERO;
     }
 
+    @JsonProperty("count")
     public long getCount() {
-        return count;
+        return summary.getCount();
     }
 }
