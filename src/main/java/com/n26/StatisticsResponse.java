@@ -5,18 +5,15 @@ import org.springframework.lang.Nullable;
 import java.math.BigDecimal;
 
 public class StatisticsResponse {
-    static final StatisticsResponse ZERO_VALUE = new StatisticsResponse(null, null, null, null, 0);
+    static final StatisticsResponse ZERO_VALUE = new StatisticsResponse(null, null, null, 0);
 
     private final BigDecimal sum;
-    private final BigDecimal avg;
     private final BigDecimal max;
     private final BigDecimal min;
     private final long count;
 
-    StatisticsResponse(@Nullable BigDecimal sum, @Nullable BigDecimal avg, @Nullable BigDecimal max,
-                       @Nullable BigDecimal min, long count) {
+    StatisticsResponse(@Nullable BigDecimal sum, @Nullable BigDecimal max, @Nullable BigDecimal min, long count) {
         this.sum = sum;
-        this.avg = avg;
         this.max = max;
         this.min = min;
         this.count = count;
@@ -29,7 +26,7 @@ public class StatisticsResponse {
 
     @Nullable
     public BigDecimal getAvg() {
-        return avg;
+        return sum == null ? null : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_HALF_UP);
     }
 
     @Nullable

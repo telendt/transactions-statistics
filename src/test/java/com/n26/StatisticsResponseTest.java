@@ -26,7 +26,7 @@ public class StatisticsResponseTest {
      */
     @Test
     public void testSerializationZeroValue() throws IOException {
-        assertThat(json.write(StatisticsResponse.ZERO_VALUE)).isEqualToJson("expected/statisticsResponse-02.json");
+        assertThat(json.write(StatisticsResponse.ZERO_VALUE)).isEqualToJson("expected/statisticsResponse-01.json");
     }
 
     /**
@@ -37,12 +37,12 @@ public class StatisticsResponseTest {
     @Test
     public void testSerializationSpecExample() throws IOException {
         StatisticsResponse statisticsResponse = new StatisticsResponse(
-                new BigDecimal("1000.00"),
-                new BigDecimal("100.53"),
+                new BigDecimal("1005.3"), // corrected to get the value of avg from the spec
+                // avg skipped, as it's calculated as sum/count
                 new BigDecimal("200000.49"), // max greater that sum? how? :)
                 new BigDecimal("50.23"),
                 10);
         System.out.println(json.write(statisticsResponse).toString());
-        assertThat(json.write(statisticsResponse)).isEqualToJson("expected/statisticsResponse-01.json");
+        assertThat(json.write(statisticsResponse)).isEqualToJson("expected/statisticsResponse-02.json");
     }
 }

@@ -1,27 +1,30 @@
 package com.n26;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PastOrPresent;
 import java.math.BigDecimal;
 import java.time.Instant;
 
 public class TransactionRequest {
-    @NotNull
     private final BigDecimal amount;
 
-    @PastOrPresent
-    @NotNull
+
     private final Instant timestamp;
 
-    public TransactionRequest(BigDecimal amount, Instant timestamp) {
+    public TransactionRequest(@JsonProperty("amount") BigDecimal amount, @JsonProperty("timestamp") Instant timestamp) {
         this.amount = amount;
         this.timestamp = timestamp;
     }
 
+    @NotNull
     BigDecimal getAmount() {
         return amount;
     }
 
+    @PastOrPresent
+    @NotNull
     Instant getTimestamp() {
         return timestamp;
     }
