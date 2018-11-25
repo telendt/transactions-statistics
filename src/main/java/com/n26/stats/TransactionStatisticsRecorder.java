@@ -1,9 +1,9 @@
-package com.n26;
+package com.n26.stats;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
-interface TransactionStatisticsRecorder {
+public interface TransactionStatisticsRecorder {
     /**
      * Records transaction of a given amount that happened at a given timestamp.
      *

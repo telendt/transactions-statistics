@@ -1,4 +1,4 @@
-package com.n26;
+package com.n26.stats;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,11 +12,9 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
- * Threat-safe implementation of <tt>TransactionStatistics</tt> interface with constant time and space
+ * Thread safe implementation of <tt>TransactionStatisticsRecorder</tt> interface with constant time and space
  * implementation of specified methods.
  *
  * <p>It works by splitting time window into smaller "buckets", each of width <tt>Δt/C</tt>,
@@ -41,7 +39,7 @@ import java.util.stream.Stream;
  * <li><tt>Δt</tt> - time window width</li>
  * </ul>
  */
-class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder {
+public class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder {
     private final Logger logger = LoggerFactory.getLogger(TransactionStatisticsRecorderImpl.class);
 
     private final AtomicReferenceArray<Stats> buckets;
@@ -59,14 +57,15 @@ class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder
     }
 
     /**
-     * Constructs TransactionStatistics of given time window and resolution (number of buckets).
+     * Constructs TransactionStatisticsRecorderImpl of given time window (equals to maxTransactionAge)
+     * and resolution (number of buckets).
      *
      * @param maxTransactionAge maximum age of a transaction
-     * @param resolution number of buckets (affects precision of summary statistics)
-     * @param clock custom {@code Clock} instance
+     * @param resolution        number of buckets (affects precision of summary statistics)
+     * @param clock             custom {@code Clock} instance
      * @throws IllegalArgumentException
      */
-    TransactionStatisticsRecorderImpl(Duration maxTransactionAge, int resolution, Clock clock) {
+    public TransactionStatisticsRecorderImpl(Duration maxTransactionAge, int resolution, Clock clock) {
         Objects.requireNonNull(maxTransactionAge, "maxTransactionAge");
         if (maxTransactionAge.isNegative() || maxTransactionAge.isZero()) {
             throw new IllegalArgumentException("Illegal maxTransactionAge: non-positive value");
@@ -81,40 +80,10 @@ class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder
         state = new State(clock.instant().plus(tickDelta), 0);
     }
 
-    // TODO: move static utilities to a separate class
-
-    /**
-     * Returns stream of objects from AtomicReferenceArray.
-     *
-     * @param arr AtomicReferenceArray instance
-     * @param <T> The base class of elements held in arr
-     * @return stream of objects
-     */
-    private static <T> Stream<T> stream(AtomicReferenceArray<T> arr) {
-        return IntStream.range(0, arr.length()).mapToObj(arr::get);
-    }
-
-    /**
-     * Returns number of whole times a specified Duration occurs within this Duration.
-     * <p>
-     * This code was backported from JDK 9.
-     *
-     * @param duration the value of duration to divide
-     * @param divisor  the value to divide the duration by, positive or negative, not null
-     * @return number of whole times, rounded toward zero, a specified
-     * {@code Duration} occurs within this Duration, may be negative
-     * @throws ArithmeticException if the divisor is zero, or if numeric overflow occurs
-     */
-    private static long durationDividedBy(Duration duration, Duration divisor) {
-        BigDecimal v1 = BigDecimal.valueOf(duration.getSeconds()).add(BigDecimal.valueOf(duration.getNano(), 9));
-        BigDecimal v2 = BigDecimal.valueOf(divisor.getSeconds()).add(BigDecimal.valueOf(divisor.getNano(), 9));
-        return v1.divideToIntegralValue(v2).longValueExact();
-    }
-
     /**
      * Tick should be called periodically (with a fixed rate of duration/resolution) by an external scheduler.
      */
-    void tick() {
+    public void tick() {
         try {
             writeLock.lock();
             int i = (state.readIndex > 0 ? state.readIndex : buckets.length()) - 1;
@@ -135,7 +104,7 @@ class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder
         State s = state;
         long l;
         try {
-            l = durationDividedBy(Duration.between(timestamp, s.timeZero), tickDelta);
+            l = Utils.durationDividedBy(Duration.between(timestamp, s.timeZero), tickDelta);
         } catch (ArithmeticException e) {
             return -1;
         }
@@ -198,7 +167,7 @@ class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder
     }
 
     /**
-     * Returns a summary of all transactions that happened in the last {@code timeWindowDuration}.
+     * Returns a summary of all transactions that happened between now and now-maxTransactionAge.
      * Runs in constant time O(1) (linear to the number of buckets but constant to the number of recorded transactions).
      *
      * @return SummaryStatistics of recorded transactions
@@ -209,7 +178,7 @@ class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder
         Stats finalStats;
         try {
             readLock.lock();
-            finalStats = stream(buckets)
+            finalStats = Utils.stream(buckets)
                     .filter(Objects::nonNull)
                     .reduce((prev, next) -> new Stats(
                             prev.sum.add(next.sum),

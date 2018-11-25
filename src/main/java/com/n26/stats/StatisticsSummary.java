@@ -1,6 +1,6 @@
-package com.n26;
+package com.n26.stats;
 
-interface StatisticsSummary<T> {
+public interface StatisticsSummary<T> {
     /**
      * Returns total sum of values.
      *

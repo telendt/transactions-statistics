@@ -1,6 +1,7 @@
-package com.n26;
+package com.n26.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.n26.stats.StatisticsSummary;
 
 import java.math.BigDecimal;
 

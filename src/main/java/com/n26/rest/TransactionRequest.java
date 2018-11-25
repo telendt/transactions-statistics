@@ -1,4 +1,4 @@
-package com.n26;
+package com.n26.rest;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

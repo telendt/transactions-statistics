@@ -1,5 +1,7 @@
 package com.n26;
 
+import com.n26.stats.TransactionStatisticsRecorder;
+import com.n26.stats.TransactionStatisticsRecorderImpl;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,9 +27,9 @@ public class ApplicationConfig {
     }
 
     @Bean
-    TransactionStatisticsRecorder transactionStatistics(ScheduledExecutorService scheduledExecutorService,
-                                                        Clock clock,
-                                                        RecorderProperties properties) {
+    TransactionStatisticsRecorder transactionStatistics(RecorderProperties properties,
+                                                        ScheduledExecutorService scheduledExecutorService,
+                                                        Clock clock) {
 
         TransactionStatisticsRecorderImpl statistics = new TransactionStatisticsRecorderImpl(
                 properties.getDuration(), properties.getResolution(), clock);

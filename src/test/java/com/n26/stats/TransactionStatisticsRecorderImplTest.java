@@ -1,4 +1,4 @@
-package com.n26;
+package com.n26.stats;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +23,18 @@ public class TransactionStatisticsRecorderImplTest {
         clock.setInstant(timeZero);
         transactionStatistics = new TransactionStatisticsRecorderImpl(
                 Duration.ofSeconds(RECORDING_SECONDS), RECORDING_SECONDS, clock);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateIllegalMaxTransactionAge() {
+        new TransactionStatisticsRecorderImpl(
+                Duration.ofSeconds(-1), RECORDING_SECONDS, clock);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateIllegalResolution() {
+        new TransactionStatisticsRecorderImpl(
+                Duration.ofSeconds(RECORDING_SECONDS), -1, clock);
     }
 
     @Test
