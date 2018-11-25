@@ -3,5 +3,9 @@ spring:
     banner-mode: "off"
 
 recorder:
-  resolution: 100
+  resolution: 1000
   duration: 60s
+
+serialization:
+  rounding-mode: HALF_UP
+  decimalPoints: 2

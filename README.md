@@ -5,7 +5,7 @@ For more information please see [INSTRUCTIONS](INSTRUCTIONS.md).
 
 ## Requirements
 
-Java 1.8 and Maven 3.
+Java 8 and Maven 3.
 
 ## Commands
 
@@ -34,5 +34,3 @@ Please see [SOLUTION](SOLUTION.md).
 - dockerize
 - verify thread-safety with [jcstress](https://openjdk.java.net/projects/code-tools/jcstress/)
 - improve documentation and test coverage
-- parametrize numbers formatting via configuration (number of decimal
-  places and rounding)

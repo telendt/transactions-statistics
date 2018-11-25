@@ -1,8 +1,5 @@
 package com.n26.stats;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
@@ -12,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.IntStream;
 
 /**
  * Thread safe implementation of <tt>TransactionStatisticsRecorder</tt> interface with constant time and space
@@ -40,14 +38,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * </ul>
  */
 public class TransactionStatisticsRecorderImpl implements TransactionStatisticsRecorder {
-    private final Logger logger = LoggerFactory.getLogger(TransactionStatisticsRecorderImpl.class);
-
     private final AtomicReferenceArray<Stats> buckets;
     private final Clock clock;
     private final Duration tickDelta;
+
     // locking between tick/clear (single) and recordTransaction/getSummary (many)
     private final Lock readLock;
     private final Lock writeLock;
+
     private volatile State state; // atomic reference
 
     {
@@ -63,7 +61,7 @@ public class TransactionStatisticsRecorderImpl implements TransactionStatisticsR
      * @param maxTransactionAge maximum age of a transaction
      * @param resolution        number of buckets (affects precision of summary statistics)
      * @param clock             custom {@code Clock} instance
-     * @throws IllegalArgumentException
+     * @throws IllegalArgumentException on non-positive maxTransactionAge or resolution
      */
     public TransactionStatisticsRecorderImpl(Duration maxTransactionAge, int resolution, Clock clock) {
         Objects.requireNonNull(maxTransactionAge, "maxTransactionAge");
@@ -73,11 +71,41 @@ public class TransactionStatisticsRecorderImpl implements TransactionStatisticsR
         if (resolution < 1) {
             throw new IllegalArgumentException("Illegal resolution: " + resolution);
         }
-
         buckets = new AtomicReferenceArray<>(resolution);
         this.clock = clock;
         tickDelta = maxTransactionAge.dividedBy(resolution);
         state = new State(clock.instant().plus(tickDelta), 0);
+    }
+
+    /**
+     * Updates stats with given values, returns new Stats instance.
+     *
+     * @param stats old stats values (non-null)
+     * @param sum   total sum of values (of the other stats)
+     * @param max   the single highest value (of the other stats)
+     * @param min   the single lowest value (of the other stats)
+     * @param count the total number of transactions (of the other stats)
+     * @return new stats instance with updated values.
+     */
+    private static Stats merge(Stats stats, BigDecimal sum, BigDecimal max, BigDecimal min, long count) {
+        return new Stats(
+                stats.sum.add(sum),
+                stats.max.compareTo(max) > 0 ? stats.max : max,
+                stats.min.compareTo(min) < 0 ? stats.min : min,
+                stats.count + count
+        );
+    }
+
+    /**
+     * Converts this duration to the total length in seconds and
+     * fractional nanoseconds expressed as a {@code BigDecimal}.
+     *
+     * <p>This code was backported from JDK 9.
+     *
+     * @return the total length of the duration in seconds, with a scale of 9, not null
+     */
+    private static BigDecimal toBigDecimalSeconds(Duration duration) {
+        return BigDecimal.valueOf(duration.getSeconds()).add(BigDecimal.valueOf(duration.getNano(), 9));
     }
 
     /**
@@ -104,11 +132,13 @@ public class TransactionStatisticsRecorderImpl implements TransactionStatisticsR
         State s = state;
         long l;
         try {
-            l = Utils.durationDividedBy(Duration.between(timestamp, s.timeZero), tickDelta);
+            BigDecimal age = toBigDecimalSeconds(Duration.between(timestamp, s.timeZero));
+            BigDecimal bucketWidth = toBigDecimalSeconds(tickDelta);
+            l = age.divideToIntegralValue(bucketWidth).longValueExact();
         } catch (ArithmeticException e) {
             return -1;
         }
-        if (l > buckets.length() || l < 0) {
+        if (l < 0 || l >= buckets.length()) {
             return -1;
         }
         return (s.readIndex + (int) l) % buckets.length();
@@ -125,6 +155,13 @@ public class TransactionStatisticsRecorderImpl implements TransactionStatisticsR
      */
     @Override
     public boolean recordTransaction(BigDecimal amount, Instant timestamp) {
+        // time bounds are checked (roughly) by buckets bounds check (less precise though)
+        //
+        //        Instant now = clock.instant();
+        //        if (timestamp.isAfter(now) || timestamp.isBefore(now.minus(maxTransactionAge))) {
+        //            return false;
+        //        }
+
         try {
             readLock.lock();
             Stats prev, next;
@@ -137,12 +174,7 @@ public class TransactionStatisticsRecorderImpl implements TransactionStatisticsR
                 prev = buckets.get(i);
                 next = prev == null ?
                         new Stats(amount, amount, amount, 1) :
-                        new Stats(
-                                prev.sum.add(amount),
-                                prev.max.compareTo(amount) > 0 ? prev.max : amount,
-                                prev.min.compareTo(amount) < 0 ? prev.min : amount,
-                                prev.count + 1
-                        );
+                        merge(prev, amount, amount, amount, 1);
             } while (!buckets.compareAndSet(i, prev, next));
             return true;
         } finally {
@@ -178,14 +210,10 @@ public class TransactionStatisticsRecorderImpl implements TransactionStatisticsR
         Stats finalStats;
         try {
             readLock.lock();
-            finalStats = Utils.stream(buckets)
+            finalStats = IntStream.range(0, buckets.length()).mapToObj(buckets::get)
                     .filter(Objects::nonNull)
-                    .reduce((prev, next) -> new Stats(
-                            prev.sum.add(next.sum),
-                            prev.max.compareTo(next.max) > 0 ? prev.max : next.max,
-                            prev.min.compareTo(next.min) < 0 ? prev.min : next.min,
-                            prev.count + next.count
-                    )).orElse(Stats.ZERO_VALUE);
+                    .reduce((prev, next) -> merge(prev, next.sum, next.max, next.min, next.count))
+                    .orElse(Stats.ZERO_VALUE);
         } finally {
             readLock.unlock();
         }

@@ -1,4 +1,4 @@
-package com.n26;
+package com.n26.config;
 
 import com.n26.stats.TransactionStatisticsRecorder;
 import com.n26.stats.TransactionStatisticsRecorderImpl;
@@ -7,13 +7,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
-@EnableConfigurationProperties(RecorderProperties.class)
+@EnableConfigurationProperties({RecorderProperties.class, SerializationProperties.class})
 public class ApplicationConfig {
 
     @Bean
@@ -34,13 +33,8 @@ public class ApplicationConfig {
         TransactionStatisticsRecorderImpl statistics = new TransactionStatisticsRecorderImpl(
                 properties.getDuration(), properties.getResolution(), clock);
         long tickRateNanos = properties.getDuration().dividedBy(properties.getResolution()).toNanos();
-        scheduledExecutorService.scheduleAtFixedRate(statistics::tick, tickRateNanos, tickRateNanos, TimeUnit.NANOSECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(
+                statistics::tick, tickRateNanos, tickRateNanos, TimeUnit.NANOSECONDS);
         return statistics;
     }
-
-    @Bean
-    Duration transactionMaxAge(RecorderProperties properties) {
-        return properties.getDuration();
-    }
-
 }

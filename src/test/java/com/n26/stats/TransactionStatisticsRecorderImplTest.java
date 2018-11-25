@@ -58,7 +58,7 @@ public class TransactionStatisticsRecorderImplTest {
     @Test
     public void testBasic() {
         transactionStatistics.recordTransaction(BigDecimal.valueOf(1), timeZero.minusMillis(100));
-        transactionStatistics.recordTransaction(BigDecimal.valueOf(3), timeZero.minusMillis(58500));
+        transactionStatistics.recordTransaction(BigDecimal.valueOf(3), timeZero.minusMillis(58900));
 
         StatisticsSummary<BigDecimal> summary = transactionStatistics.getSummary();
 
@@ -71,7 +71,7 @@ public class TransactionStatisticsRecorderImplTest {
     @Test
     public void testTicking() {
         transactionStatistics.recordTransaction(BigDecimal.valueOf(1), timeZero.minusMillis(100));
-        transactionStatistics.recordTransaction(BigDecimal.valueOf(3), timeZero.minusMillis(58500));
+        transactionStatistics.recordTransaction(BigDecimal.valueOf(3), timeZero.minusMillis(58900));
 
         clock.setInstant(timeZero.plusSeconds(1));
         transactionStatistics.tick(); // value 3 should fall out
@@ -87,7 +87,7 @@ public class TransactionStatisticsRecorderImplTest {
     @Test
     public void testRecordAfterTick() {
         transactionStatistics.recordTransaction(BigDecimal.valueOf(1), timeZero.minusMillis(100));
-        transactionStatistics.recordTransaction(BigDecimal.valueOf(3), timeZero.minusMillis(58500));
+        transactionStatistics.recordTransaction(BigDecimal.valueOf(3), timeZero.minusMillis(58900));
 
         clock.setInstant(timeZero.plusSeconds(1));
         transactionStatistics.tick(); // value 3 should fall out

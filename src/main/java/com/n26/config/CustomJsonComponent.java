@@ -1,4 +1,4 @@
-package com.n26;
+package com.n26.config;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -17,7 +17,7 @@ public class CustomJsonComponent {
     public static class BigDecimalSerializer extends JsonSerializer<BigDecimal> {
         @Override
         public void serialize(BigDecimal value, JsonGenerator jGen, SerializerProvider provider) throws IOException {
-            jGen.writeString(value.setScale(2, BigDecimal.ROUND_HALF_UP).toString());
+            jGen.writeString(value.toString());
         }
     }
 }
