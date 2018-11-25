@@ -1,0 +1,7 @@
+spring:
+  main:
+    banner-mode: "off"
+
+recorder:
+  resolution: 100
+  duration: 60s

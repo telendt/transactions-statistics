@@ -11,16 +11,36 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TransactionStatisticsImplTest {
+public class TransactionStatisticsRecorderImplTest {
+    private static final int RECORDING_SECONDS = 60;
     private static final Instant timeZero = Instant.ofEpochSecond(1543140098L);
-    private TransactionStatisticsImpl transactionStatistics;
+    private TransactionStatisticsRecorderImpl transactionStatistics;
     private FakeClock clock;
 
     @Before
     public void setUp() {
         clock = new FakeClock();
         clock.setInstant(timeZero);
-        transactionStatistics = new TransactionStatisticsImpl(Duration.ofSeconds(60), 60, clock);
+        transactionStatistics = new TransactionStatisticsRecorderImpl(
+                Duration.ofSeconds(RECORDING_SECONDS), RECORDING_SECONDS, clock);
+    }
+
+    @Test
+    public void testRecordOk() {
+        boolean ok = transactionStatistics.recordTransaction(BigDecimal.valueOf(5), timeZero.minusSeconds(2));
+        assertThat(ok).isTrue();
+    }
+
+    @Test
+    public void testRecordFailFuture() {
+        boolean ok = transactionStatistics.recordTransaction(BigDecimal.valueOf(5), timeZero.plusSeconds(2));
+        assertThat(ok).isFalse();
+    }
+
+    @Test
+    public void testRecordFailTooOld() {
+        boolean ok = transactionStatistics.recordTransaction(BigDecimal.valueOf(5), timeZero.minusSeconds(RECORDING_SECONDS + 2));
+        assertThat(ok).isFalse();
     }
 
     @Test

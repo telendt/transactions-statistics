@@ -19,12 +19,15 @@ import java.time.Instant;
 @RestController("/")
 public class TransactionsController {
 
-    private final TransactionStatistics transactionStatistics;
+    private final TransactionStatisticsRecorder transactionStatisticsRecorder;
+    private final Duration transactionMaxAge;
     private final Clock clock;
 
-    TransactionsController(TransactionStatistics transactionStatistics,
+    TransactionsController(TransactionStatisticsRecorder transactionStatisticsRecorder,
+                           Duration transactionMaxAge,
                            Clock clock) {
-        this.transactionStatistics = transactionStatistics;
+        this.transactionStatisticsRecorder = transactionStatisticsRecorder;
+        this.transactionMaxAge = transactionMaxAge;
         this.clock = clock;
     }
 
@@ -33,21 +36,21 @@ public class TransactionsController {
         // check if transaction is not too old
         // (more precise than relying on transactionStatistics.recordTransaction return value)
         Instant timestamp = transactionRequest.getTimestamp();
-        if (Duration.between(timestamp, Instant.now(clock)).compareTo(Duration.ofSeconds(60)) > 0) { // TODO: parametrize
+        if (Duration.between(timestamp, Instant.now(clock)).compareTo(transactionMaxAge) > 0) { // TODO: parametrize
             return new ResponseEntity(HttpStatus.NO_CONTENT);
         }
-        transactionStatistics.recordTransaction(transactionRequest.getAmount(), timestamp);
+        transactionStatisticsRecorder.recordTransaction(transactionRequest.getAmount(), timestamp);
         return new ResponseEntity(HttpStatus.CREATED);
     }
 
     @GetMapping(value = "/statistics", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     StatisticsResponse getStatistics() {
-        return new StatisticsResponse(transactionStatistics.getSummary());
+        return new StatisticsResponse(transactionStatisticsRecorder.getSummary());
     }
 
     @DeleteMapping(value = "/transactions")
     ResponseEntity deleteTransactions() {
-        transactionStatistics.clear();
+        transactionStatisticsRecorder.clear();
         return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 
