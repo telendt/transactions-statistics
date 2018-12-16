@@ -1,7 +1,7 @@
 # Solution
 
 The challenge specification defines 3 endpoints -- one for registering
-transactions, one for getting summary statistics from transactions that happend
+transactions, one for getting summary statistics from transactions that happened
 in the last 60 seconds and one deleting all registered transactions. Both are
 supposed to run in constant time and space which makes this a non-trivial task.
 
@@ -99,4 +99,4 @@ inconsistencies.
 
 I chose to base my implementation on AtomicReferenceArray where changes to each
 bucket are made in "optimistic" update loops (that use
-[CAS](https://en.wikipedia.org/wiki/Compare-and-swap) mechanizm).
+[CAS](https://en.wikipedia.org/wiki/Compare-and-swap) mechanism).
